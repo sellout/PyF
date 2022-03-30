@@ -1,9 +1,13 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ExtendedDefaultRules #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 import Control.DeepSeq
 import Control.Exception
+#if !MIN_VERSION_base(4,11,0)
+import Data.Semigroup (Semigroup (..))
+#endif
 import qualified Data.Text as Text
 import System.Exit
 import System.FilePath
@@ -39,9 +43,11 @@ checkCompile content = withSystemTempFile "PyFTest.hs" $ \path fd -> do
       [ path,
         -- Include all PyF files
         "-isrc",
+#if MIN_VERSION_GLASGOW_HASKELL(8,4,0,0)
         -- Disable the usage of the annoying .ghc environment file
         "-package-env",
         "-",
+#endif
         -- Tests use a filename in a temporary directory which may have a long filename which triggers
         -- line wrapping, reducing the reproducibility of error message
         -- By setting the column size to a high value, we ensure reproducible error messages

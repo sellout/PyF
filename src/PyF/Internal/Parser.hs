@@ -33,13 +33,21 @@ import GHC.Hs.Expr as Expr
 import GHC.Hs.Extension as Ext
 #else
 import HsExpr as Expr
+#if MIN_VERSION_ghc(8,4,0)
 import HsExtension as Ext
+#else
+import RdrName
+#endif
 import Outputable (showSDoc)
 #endif
 
 import qualified PyF.Internal.ParserEx as ParseExp
 
+#if MIN_VERSION_ghc(8,4,0)
 parseExpression :: String -> DynFlags -> Either (Int, Int, String) (HsExpr GhcPs)
+#else
+parseExpression :: String -> DynFlags -> Either (Int, Int, String) (HsExpr RdrName)
+#endif
 parseExpression s dynFlags =
   case ParseExp.parseExpression s dynFlags of
     POk _ locatedExpr ->
@@ -55,9 +63,12 @@ parseExpression s dynFlags =
     PFailed PState{loc=SrcLoc.psRealLoc -> srcLoc, messages=msgs} ->
 #elif MIN_VERSION_ghc(8,10,0)
     PFailed PState{loc=srcLoc, messages=msgs} ->
-#else
+#elif MIN_VERSION_ghc(8,4,0)
     -- TODO: check for pattern failure
     PFailed _ (SrcLoc.srcSpanEnd -> SrcLoc.RealSrcLoc srcLoc) doc ->
+#else
+    -- TODO: check for pattern failure
+    PFailed (SrcLoc.srcSpanEnd -> SrcLoc.RealSrcLoc srcLoc) doc ->
 #endif
 #if MIN_VERSION_ghc(9,2,0)
             let

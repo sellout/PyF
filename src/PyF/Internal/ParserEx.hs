@@ -171,9 +171,12 @@ fakeLlvmConfig = LlvmConfig [] []
 #elif MIN_VERSION_ghc(8, 6, 0)
 fakeLlvmConfig :: (LlvmTargets, LlvmPasses)
 fakeLlvmConfig = ([], [])
-#else
+#elif MIN_VERSION_ghc(8,4,0)
 fakeLlvmConfig :: LlvmTargets
 fakeLlvmConfig = []
+#else
+fakeLlvmConfig :: ()
+fakeLlvmConfig = ()
 #endif
 
 -- From Language.Haskell.GhclibParserEx.GHC.Parser

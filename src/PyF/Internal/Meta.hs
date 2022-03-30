@@ -26,12 +26,19 @@ import GHC.Hs.Pat as Pat
 import GHC.Hs.Lit
 #else
 import HsExpr as Expr
+#if MIN_VERSION_ghc(8,4,0)
 import HsExtension as Ext
+#else
+import RdrName
+#endif
 import HsPat as Pat
 import HsLit
 #endif
 
 import qualified Data.ByteString as B
+#if !MIN_VERSION_base(4,11,0)
+import Data.Semigroup (Semigroup (..))
+#endif
 import qualified Language.Haskell.TH.Syntax as GhcTH
 import qualified Language.Haskell.TH.Syntax as TH
 import PyF.Internal.ParserEx (fakeLlvmConfig, fakeSettings)
@@ -58,7 +65,11 @@ import Name
 import RdrName
 import FastString
 import Outputable (ppr, showSDocDebug)
+#if MIN_VERSION_ghc(8,4,0)
 import BasicTypes (il_value, fl_value, Boxity(..))
+#else
+import BasicTypes (fl_value, Boxity(..))
+#endif
 import DynFlags (DynFlags, xopt_set, defaultDynFlags)
 import qualified Module
 #endif
@@ -70,31 +81,50 @@ import GHC.Stack
 fl_value = rationalFromFractionalLit
 #endif
 
+#if MIN_VERSION_ghc(8,4,0)
 toLit :: HsLit GhcPs -> TH.Lit
+#else
+toLit :: HsLit -> TH.Lit
+#endif
 toLit (HsChar _ c) = TH.CharL c
 toLit (HsCharPrim _ c) = TH.CharPrimL c
 toLit (HsString _ s) = TH.StringL (unpackFS s)
 toLit (HsStringPrim _ s) = TH.StringPrimL (B.unpack s)
+#if MIN_VERSION_ghc(8,4,0)
 toLit (HsInt _ i) = TH.IntegerL (il_value i)
+toLit (HsRat _ f _) = TH.FloatPrimL (fl_value f)
+toLit (HsFloatPrim _ f) = TH.FloatPrimL (fl_value f)
+toLit (HsDoublePrim _ f) = TH.DoublePrimL (fl_value f)
+#else
+toLit (HsInt _ i) = TH.IntegerL i
+toLit (HsRat f _) = TH.FloatPrimL (fl_value f)
+toLit (HsFloatPrim f) = TH.FloatPrimL (fl_value f)
+toLit (HsDoublePrim f) = TH.DoublePrimL (fl_value f)
+#endif
 toLit (HsIntPrim _ i) = TH.IntPrimL i
 toLit (HsWordPrim _ i) = TH.WordPrimL i
 toLit (HsInt64Prim _ i) = TH.IntegerL i
 toLit (HsWord64Prim _ i) = TH.WordPrimL i
 toLit (HsInteger _ i _) = TH.IntegerL i
-toLit (HsRat _ f _) = TH.FloatPrimL (fl_value f)
-toLit (HsFloatPrim _ f) = TH.FloatPrimL (fl_value f)
-toLit (HsDoublePrim _ f) = TH.DoublePrimL (fl_value f)
 
 #if MIN_VERSION_ghc(8, 6, 0) && !MIN_VERSION_ghc(9,0,0)
 toLit (XLit _) = noTH "toLit" "XLit"
 #endif
 
 toLit' :: OverLitVal -> TH.Lit
+#if MIN_VERSION_ghc(8,4,0)
 toLit' (HsIntegral i) = TH.IntegerL (il_value i)
+#else
+toLit' (HsIntegral _ i) = TH.IntegerL i
+#endif
 toLit' (HsFractional f) = TH.RationalL (fl_value f)
 toLit' (HsIsString _ fs) = TH.StringL (unpackFS fs)
 
+#if MIN_VERSION_ghc(8,4,0)
 toType :: HsType GhcPs -> TH.Type
+#else
+toType :: HsType RdrName -> TH.Type
+#endif
 toType (HsWildCardTy _) = TH.WildCardT
 #if MIN_VERSION_ghc(8, 6, 0)
 toType (HsTyVar _ _ n) =
@@ -125,7 +155,11 @@ toName n = case n of
 toFieldExp :: a
 toFieldExp = undefined
 
+#if MIN_VERSION_ghc(8,4,0)
 toPat :: DynFlags -> Pat.Pat GhcPs -> TH.Pat
+#else
+toPat :: DynFlags -> Pat.Pat RdrName -> TH.Pat
+#endif
 #if MIN_VERSION_ghc(8, 6, 0)
 toPat _dynFlags (Pat.VarPat _ (unLoc -> name)) = TH.VarP (toName name)
 #else
@@ -133,7 +167,11 @@ toPat _dynFlags (Pat.VarPat (unLoc -> name)) = TH.VarP (toName name)
 #endif
 toPat dynFlags p = todo "toPat" (showSDocDebug dynFlags . ppr $ p)
 
+#if MIN_VERSION_ghc(8,4,0)
 toExp :: DynFlags -> Expr.HsExpr GhcPs -> TH.Exp
+#else
+toExp :: DynFlags -> Expr.HsExpr RdrName -> TH.Exp
+#endif
 #if MIN_VERSION_ghc(8, 6, 0)
 toExp _ (Expr.HsVar _ n) =
   let n' = unLoc n
@@ -186,7 +224,11 @@ toExp d (Expr.HsLam _ (Expr.MG _ (unLoc -> (map unLoc -> [Expr.Match _ _ (map un
 toExp d (Expr.OpApp e1 o _ e2) = TH.UInfixE (toExp d . unLoc $ e1) (toExp d . unLoc $ o) (toExp d . unLoc $ e2)
 toExp d (Expr.NegApp e _) = TH.AppE (TH.VarE 'negate) (toExp d . unLoc $ e)
 -- NOTE: for lambda, there is only one match
+#if MIN_VERSION_ghc(8,4,0)
 toExp d (Expr.HsLam (Expr.MG (unLoc -> (map unLoc -> [Expr.Match _ (map unLoc -> ps) (Expr.GRHSs [unLoc -> Expr.GRHS _ (unLoc -> e)] _)])) _ _ _)) = TH.LamE (fmap (toPat d) ps) (toExp d e)
+#else
+toExp d (Expr.HsLam (Expr.MG (unLoc -> (map unLoc -> [Expr.Match _ (map unLoc -> ps) _ (Expr.GRHSs [unLoc -> Expr.GRHS _ (unLoc -> e)] _)])) _ _ _)) = TH.LamE (fmap (toPat d) ps) (toExp d e)
+#endif
 #endif
 -- toExp (Expr.Let _ bs e)                       = TH.LetE (toDecs bs) (toExp e)
 -- toExp (Expr.If _ a b c)                       = TH.CondE (toExp a) (toExp b) (toExp c)
@@ -260,10 +302,12 @@ toExp _ (HsOverLabel _ lbl) = TH.LabelE (unpackFS lbl)
 -- It's not quite clear what to do in case when overloaded syntax is
 -- enabled thus match on Nothing
 toExp _ (HsOverLabel _ Nothing lbl) = TH.LabelE (unpackFS lbl)
-#else
+#elif MIN_VERSION_ghc(8,4,0)
 -- It's not quite clear what to do in case when overloaded syntax is
 -- enabled thus match on Nothing
 toExp _ (HsOverLabel Nothing lbl) = TH.LabelE (unpackFS lbl)
+#else
+toExp _ HsOverLabel {} = noTH "toExp" "HsOverLabel"
 #endif
 toExp dynFlags e = todo "toExp" (showSDocDebug dynFlags . ppr $ e)
 
@@ -277,6 +321,12 @@ moduleName :: String
 moduleName = "PyF.Internal.Meta"
 
 baseDynFlags :: [GhcTH.Extension] -> DynFlags
+#if MIN_VERSION_ghc(8,4,0)
 baseDynFlags exts =
   let enable = GhcTH.TemplateHaskellQuotes : exts
    in foldl xopt_set (defaultDynFlags fakeSettings fakeLlvmConfig) enable
+#else
+baseDynFlags exts =
+  let enable = GhcTH.TemplateHaskellQuotes : exts
+   in foldl xopt_set (defaultDynFlags fakeSettings) enable
+#endif

@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DisambiguateRecordFields #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -29,6 +30,9 @@ import Control.Monad.Reader
 import Data.Kind
 import Data.Maybe (fromMaybe)
 import Data.Proxy
+#if !MIN_VERSION_base(4,11,0)
+import Data.Semigroup (Semigroup (..))
+#endif
 import Data.String (fromString)
 import GHC.TypeLits
 import Language.Haskell.TH hiding (Type)

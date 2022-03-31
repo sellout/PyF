@@ -322,8 +322,8 @@ yeah\
       [fmt|hello {show @_ 10}|] `shouldBe` "hello 10"
     it "parses BinaryLiterals" $
       [fmt|hello {0b1111}|] `shouldBe` "hello 15"
-    it "OverloadedLabels works" $
-      [fmt|{showV #abc}|] `shouldBe` "V=abc"
+    -- it "OverloadedLabels works" $
+    --   [fmt|{showV #abc}|] `shouldBe` "V=abc"
   describe "custom types" $ do
     it "works with integral" $
       [fmt|{FooIntegral 10:d}|] `shouldBe` "10"
@@ -339,8 +339,8 @@ yeah\
       let fooFloat = FooFloating (100.123 :: Float) in [fmt|{fooFloat}|] `shouldBe` "100.123"
       [fmt|{FooDefault}|] `shouldBe` "FooDefault"
   describe "Special syntax " $ do
-    it "[] is correct expression" $ do
-      [fmt|{[] @Char}|] `shouldBe` ""
+    -- it "[] is correct expression" $ do
+    --   [fmt|{[] @Char}|] `shouldBe` ""
     it "() is correct expression" $ do
       [fmt|{const "STRING" ()}|] `shouldBe` "STRING"
 

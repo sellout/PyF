@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveLift #-}
 {-# LANGUAGE GADTs #-}
@@ -53,6 +54,9 @@ where
 
 import Data.Char (chr, toUpper)
 import Data.List (intercalate)
+#if !MIN_VERSION_base(4,11,0)
+import Data.Semigroup (Semigroup (..))
+#endif
 import Language.Haskell.TH.Syntax
 import qualified Numeric
 

@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
@@ -26,6 +27,9 @@ import Control.Applicative (some)
 import Control.Monad.Reader
 import qualified Data.Char
 import Data.Maybe (fromMaybe)
+#if !MIN_VERSION_base(4,11,0)
+import Data.Semigroup (Semigroup (..))
+#endif
 import Language.Haskell.TH.LanguageExtensions (Extension(..))
 import Language.Haskell.TH.Syntax (Exp)
 import PyF.Formatters

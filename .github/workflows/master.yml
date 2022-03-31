@@ -9,6 +9,9 @@ on:
 jobs:
   nix_build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        pyf: [pyf_810, pyf_88, pyf_86, pyf_90, pyf_92]
 
     steps:
     - uses: actions/checkout@v2
@@ -20,18 +23,31 @@ jobs:
 
     # Builds cabal (nix)
     - name: Build with all supported GHC
-      run: nix build .#pyf_all
+      run: nix build .#${{ matrix.pyf }}
 
   stack_build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - ghc: "9.2"
+            resolver: nightly-2022-03-28
+          - ghc: "9.0"
+            resolver: lts-19.1
+          - ghc: "8.10"
+            resolver: lts-17.1
+          - ghc: "8.8"
+            resolver: lts-16.31
+          - ghc: "8.6"
+            resolver: lts-14.27
+          - ghc: "8.4"
+            resolver: lts-12.26
+          - ghc: "8.2"
+            resolver: lts-11.22
 
     steps:
     - uses: actions/checkout@v2
     - name: Setup Stack
       run: sudo apt-get install haskell-stack
-
-    # Build stack
-    - name: Stack 8.10
-      run: stack --resolver lts-17.1 test
-    - name: Stack 8.8
-      run: stack --resolver lts-16.31 test
+    - name: Stack ${{ matrix.ghc }}
+      run: stack --resolver ${{ matrix.resolver }} test

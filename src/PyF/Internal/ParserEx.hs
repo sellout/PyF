@@ -110,7 +110,9 @@ fakeSettings = Settings
   , sPlatformConstants=platformConstants
   , sProjectVersion=cProjectVersion
   , sProgramName="ghc"
+#if MIN_VERSION_ghc(8, 6, 0)
   , sOpt_P_fingerprint=fingerprint0
+#endif
   }
 #endif
   where
@@ -166,9 +168,15 @@ fakeSettings = Settings
 #if MIN_VERSION_ghc(8, 10, 0)
 fakeLlvmConfig :: LlvmConfig
 fakeLlvmConfig = LlvmConfig [] []
-#else
+#elif MIN_VERSION_ghc(8, 6, 0)
 fakeLlvmConfig :: (LlvmTargets, LlvmPasses)
 fakeLlvmConfig = ([], [])
+#elif MIN_VERSION_ghc(8,4,0)
+fakeLlvmConfig :: LlvmTargets
+fakeLlvmConfig = []
+#else
+fakeLlvmConfig :: ()
+fakeLlvmConfig = ()
 #endif
 
 -- From Language.Haskell.GhclibParserEx.GHC.Parser
